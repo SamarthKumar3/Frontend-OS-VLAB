@@ -68,33 +68,30 @@ const VirtualLab: React.FC = () => {
         e.preventDefault();
         // take input from the user's memory block size and set it
         // setMemorySize()
-        setSimulation(true);
+
         switch (allocationStrategy) {
             case 'firstFit':
                 StartFirstFit(processes, memoryBlocks, allocationCallback);
                 break;
             case 'bestFit':
-                StartBestFit(processes, memoryBlocks);
+                StartBestFit(processes, memoryBlocks, allocationCallback);
                 break;
             case 'nextFit':
-                StartNextFit(processes, memoryBlocks);
+                StartNextFit(processes, memoryBlocks, allocationCallback);
                 break;
             case 'worstFit':
-                StartWorstFit(processes, memoryBlocks);
+                StartWorstFit(processes, memoryBlocks, allocationCallback);
                 break;
             default:
                 break;
         }
-        setTimeout(() => {
-            setSimulation(false);
-        }, 100000);
     }
 
     const handleAllocationStrategyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setAllocationStrategy(e.target.value);
     };
 
-    const handleEnter = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             handleAddProcess();
         }
@@ -102,7 +99,7 @@ const VirtualLab: React.FC = () => {
 
     const StartFirstFit = (processes: Process[], memoryBlocks: MemoryBlock[], callback: (modifiedMemoryBlocks: MemoryBlock[]) => void) => {
         const modifiedMemoryBlocks = memoryBlocks.slice()
-        processes.forEach((process, processId) => {
+        processes.forEach((process) => {
             let processAllocated = false;
             for (let block of modifiedMemoryBlocks) {
                 if (!block.isAllocated && block.size >= process.size) {
@@ -121,19 +118,19 @@ const VirtualLab: React.FC = () => {
         callback(modifiedMemoryBlocks);
     };
 
-    const StartBestFit = (processes: Process[], memoryBlocks: MemoryBlock[]) => {
+    const StartBestFit = (processes: Process[], memoryBlocks: MemoryBlock[], callback: (modifiedMemoryBlocks: MemoryBlock[]) => void) => {
         let n = memoryBlocks.length;
         let m = processes.length;
 
         let allocation = new Array(n).fill(-1);
-
+        const modifiedMemoryBlocks = memoryBlocks.slice();
         for (let i = 0; i < n; i++) {
             let bestIdx = -1;
             for (let j = 0; j < m; j++) {
-                if (!memoryBlocks[j].isAllocated && memoryBlocks[j].size >= processes[i].size) {
+                if (!modifiedMemoryBlocks[j].isAllocated && modifiedMemoryBlocks[j].size >= processes[i].size) {
                     if (bestIdx === -1) {
                         bestIdx = j;
-                    } else if (memoryBlocks[bestIdx].size > memoryBlocks[j].size) {
+                    } else if (modifiedMemoryBlocks[bestIdx].size > modifiedMemoryBlocks[j].size) {
                         bestIdx = j;
                     }
                 }
@@ -141,26 +138,29 @@ const VirtualLab: React.FC = () => {
 
             if (bestIdx !== -1) {
                 allocation[i] = bestIdx;
-                memoryBlocks[bestIdx].size -= processes[i].size;
-                memoryBlocks[bestIdx].isAllocated = true;
+                modifiedMemoryBlocks[bestIdx].allocatedProcessSize = processes[i].size;
+                modifiedMemoryBlocks[bestIdx].isAllocated = true;
             }
         }
+        callback(modifiedMemoryBlocks);
     }
 
-    const StartNextFit = (processes: Process[], memoryBlocks: MemoryBlock[]) => {
 
-        let m = memoryBlocks.length;
+
+    const StartNextFit = (processes: Process[], memoryBlocks: MemoryBlock[], callback: (modifiedMemoryBlocks: MemoryBlock[]) => void) => {
+
+        const modifiedMemoryBlocks = memoryBlocks.slice();
+        let m = modifiedMemoryBlocks.length;
         let n = processes.length;
 
         let allocation = new Array(n).fill(-1);
         let j = 0, t = m - 1;
-
         for (let i = 0; i < n; i++) {
-
             while (j < m) {
-                if (memoryBlocks[j].size >= processes[i].size) {
+                if (!modifiedMemoryBlocks[j].isAllocated && modifiedMemoryBlocks[j].size >= processes[i].size) {
                     allocation[i] = j;
-                    memoryBlocks[j].size -= processes[i].size;
+                    modifiedMemoryBlocks[j].allocatedProcessSize = processes[i].size;
+                    modifiedMemoryBlocks[j].isAllocated = true;
                     t = (j - 1) % m;
                     break;
                 }
@@ -171,52 +171,38 @@ const VirtualLab: React.FC = () => {
                 j = (j + 1) % m;
             }
         }
-
-        console.log("\nProcess No.\t Process Size \t Block no.");
-        for (let i = 0; i < n; i++) {
-            console.log(" " + (i + 1) + "\t" + processes[i].size + "\t");
-            if (allocation[i] != -1)
-                console.log(allocation[i] + 1);
-            else
-                console.log("Not Allocated");
-        }
+        callback(modifiedMemoryBlocks);
     }
 
-    const StartWorstFit = (processes: Process[], memoryBlocks: MemoryBlock[]) => {
-        let m = memoryBlocks.length;
+    const StartWorstFit = (processes: Process[], memoryBlocks: MemoryBlock[], callback: (modifiedMemoryBlocks: MemoryBlock[]) => void) => {
+        const modifiedMemoryBlocks = memoryBlocks.slice();
+        let m = modifiedMemoryBlocks.length;
         let n = processes.length;
 
         let allocation = new Array(n).fill(-1);
-
         for (let i = 0; i < n; i++) {
             let wstIdx = -1;
             for (let j = 0; j < m; j++) {
-                if (memoryBlocks[j].size >= processes[i].size) {
-                    if (wstIdx == -1)
+                if (!modifiedMemoryBlocks[j].isAllocated && modifiedMemoryBlocks[j].size >= processes[i].size) {
+                    if (wstIdx == -1) {
                         wstIdx = j;
-                    else if (memoryBlocks[wstIdx].size <
-                        memoryBlocks[j].size)
+                    }
+                    else if (modifiedMemoryBlocks[wstIdx].size <
+                        modifiedMemoryBlocks[j].size) {
                         wstIdx = j;
+                    }
                 }
             }
 
             if (wstIdx != -1) {
                 allocation[i] = wstIdx;
-                memoryBlocks[wstIdx].size -= processes[i].size;
+                modifiedMemoryBlocks[wstIdx].allocatedProcessSize = processes[i].size;
+                modifiedMemoryBlocks[wstIdx].isAllocated = true;
             }
         }
-
-        console.log("\nProcess No.\t Process Size \t Block no.");
-        for (let i = 0; i < n; i++) {
-            console.log(" " + (i + 1) + "\t" + processes[i].size + "\t");
-            if (allocation[i] != -1)
-                console.log(allocation[i] + 1);
-            else
-                console.log("Not Allocated");
-        }
-
+        callback(modifiedMemoryBlocks);
     }
-    
+
     return (
         <div className="virtual-lab">
             <div className="input-section">
@@ -264,7 +250,8 @@ const VirtualLab: React.FC = () => {
                     <option value="nextFit">Next Fit</option>
                     <option value="worstFit">Worst Fit</option>
                 </select>
-                <button type='submit'>Start Simulation</button>
+                <button onClick={() => setSimulation(true)}>Start Simulation</button>
+                <button onClick={() => setSimulation(false)}>Stop Simulation</button>
             </form>
 
             <div className="info-panel">
@@ -293,7 +280,7 @@ const VirtualLab: React.FC = () => {
                                         border: 'solid 1px white'
                                     }}>
                                 </div>
-                                <div style={{fontSize:'0.5rem'}}>{fragment.allocatedProcessSize} KB/ {fragment.size} KB</div>
+                                <div style={{ fontSize: '0.5rem' }}>{fragment.allocatedProcessSize} KB/ {fragment.size} KB</div>
                             </div>
                         })
                     }

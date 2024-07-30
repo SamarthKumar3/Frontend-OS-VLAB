@@ -1,8 +1,238 @@
-html,body{
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600&display=swap");
+
+html,
+body {
     margin: 0;
+    height: 100%;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+#root {
     height: 100%;
 }
 
-#root{
-    height: 100%;
+body {
+    margin: 0;
+    line-height: normal;
+}
+
+:root {
+    /* fonts */
+    --font-plus-jakarta-sans: "Plus Jakarta Sans";
+
+    /* font sizes */
+    --font-size-17xl: 1.75rem;
+    --font-size-3xl: 1.375rem;
+    --font-size-10xl: 1.813rem;
+    --font-size-11xl: 1.25rem;
+    --font-size-13xl: 1.35rem;
+    --font-size-lgi: 1.188rem;
+    --font-size-7xl: 1.625rem;
+
+    /* Colors */
+    --color-white: #fff;
+    --color-gray-100: rgba(255, 255, 255, 0);
+    --color-gray-200: rgba(0, 0, 0, 0.25);
+    --color-gray-300: rgba(0, 0, 0, 0.63);
+    --color-black: #000;
+    --color-slateblue: #7f4ebd;
+
+    /* Gaps */
+    --gap-29xl: 3rem;
+    --gap-3xl: 1.375rem;
+    --gap-0: 0rem;
+    --gap-16xl: 2.188rem;
+
+    /* Paddings */
+    --padding-xl: 1.25rem;
+    --padding-9xs: 0.25rem;
+    --padding-xs: 0.75rem;
+    --padding-14xl: 2.063rem;
+    --padding-80xl: 6.188rem;
+    --padding-30xl: 3.063rem;
+    --padding-6xs: 0.438rem;
+    --padding-6xl: 1.563rem;
+    --padding-42xl: 3.813rem;
+    --padding-lgi: 1.188rem;
+    --padding-639xl: 41.125rem;
+    --padding-310xl: 20.563rem;
+    --padding-11xl: 1.875rem;
+    --padding-5xs: 0.5rem;
+    --padding-sm: 0.875rem;
+    --padding-2xl: 1.313rem;
+    --padding-3xs: 0.625rem;
+    --padding-mid: 1.063rem;
+    --padding-7xs: 0.375rem;
+
+    /* Border radiuses */
+    --br-mini: 15px;
+}
+
+.heroSection {
+    text-align: center;
+    padding: 50px 40px;
+}
+
+.heroSection img {
+    width: 100%;
+    max-width: 3000px;
+    height: 400px;
+    display: block;
+    margin: 0 auto;
+    border: 2px solid #333;
+    /* Dark border around the hero image */
+    border-radius: 8px;
+    /* Rounded corners for the hero image */
+    object-fit: contain;
+}
+
+.section-1 {
+    text-align: justify;
+    padding: 10px 5%;
+    margin-bottom: 5rem;
+}
+
+.hero-content {
+    margin-bottom: 5rem;
+}
+
+.hero-content p {
+    line-height: 40px;
+    font-size: 18px;
+}
+
+.button-index {
+    font-family: var(--font-plus-jakarta-sans);
+    background-color: var(--navbar-blue);
+    color: var(--color-white);
+    cursor: pointer;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 20px;
+    margin: 0;
+}
+
+.button-index:focus {
+    background-color: var(--color-white);
+    color: var(--navbar-blue);
+    border: solid 1px #A6A6A7;
+}
+
+.underline {
+    border: none;
+    border-top: 1px solid #A6A6A7;
+    margin-top: -1px;
+}
+
+.section-2 {
+    margin-bottom: 5rem;
+}
+
+.myButton {
+    background-color: #C7BFD1;
+    /* Green */
+    color: black;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 20px 20px 0px 0px;
+    width: 100%;
+}
+
+.lab-container {
+    padding: 10px 5%;
+}
+
+.buttons {
+    display: flex;
+    padding: 0;
+    gap: 25px;
+    justify-content: center;
+    align-items: stretch;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    background-color: #f9f9f9;
+    border-radius: 0px 0px 10px 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cards {
+    display: flex;
+    padding: 0;
+    gap: 25px;
+    justify-content: center;
+    align-items: stretch;
+    margin-bottom: 15px;
+}
+
+.hero-choice {
+    display: flex;
+}
+
+.welcome-heading {
+    text-align: center;
+    padding: 10px;
+    color: #331a53;
+    margin-top: 4rem;
+}
+
+.welcome-holder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    column-gap: 3rem;
+    background-color: #F2E8FE;
+    border-radius: 20px;
+}
+
+.welcome-holder p {
+    line-height: 40px;
+    font-size: 18px;
+}
+
+.hod-img {
+    width: 15%;
+    border-radius: 100%;
+    border: 3px solid #331a53;
+}
+
+.lab-header {
+    width: 100%;
+    background-color: #331a53;
+
+}
+
+.lab-header h1 {
+    color: white;
+    padding: 10px;
+    margin-left: 2%;
+}
+
+.button {
+    margin-top: 1rem;
+    background-color: var(--color-slateblue);
+    color: var(--color-white);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--br-mini);
+    font-size: var(--font-size-13xl);
+    font-family: var(--font-plus-jakarta-sans);
+    cursor: pointer;
+    border: none;
+}
+
+.button-sm {
+    font-family: var(--font-plus-jakarta-sans);
+    background-color: var(--color-slateblue);
+    color: var(--color-white);
+    border-radius: var(--br-mini);
+    cursor: pointer;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
 }

@@ -1,0 +1,144 @@
+.virtual-lab {
+    font-family: 'Arial', sans-serif;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* height: 100%; */
+    row-gap: 2rem;
+    padding-top: 5rem;
+}
+
+.input-section,
+.control-panel,
+.info-panel {
+    margin-bottom: 20px;
+}
+
+.input-section input[type="number"] {
+    padding: 10px;
+    margin-right: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.input-section button {
+    padding: 10px 20px;
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.input-section button:hover {
+    background-color: #4cae4c;
+}
+
+.table-section {
+    border-collapse: collapse;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.table-section th,
+.table-section td {
+    border: 1px solid #ddd;
+    text-align: left;
+    padding: 8px;
+}
+
+.table-section th {
+    background-color: #f2f2f2;
+}
+
+.table-section tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.table-section button {
+    padding: 5px 10px;
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.table-section button:hover {
+    background-color: #c9302c;
+}
+
+.control-panel select {
+    padding: 10px;
+    margin-right: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.info-panel {
+    background-color: #f2f2f2;
+    padding: 10px;
+    border-radius: 4px;
+    max-width: 90%;
+    width: 80%;
+}
+
+.info-panel div {
+    margin-bottom: 10px;
+}
+
+.memory-block {
+    display: flex;
+    width: 100%;
+}
+
+.fragment,
+.process {
+    height: 100px;
+}
+
+.fragment{
+    position: relative;
+    transition: hover 0.3s ease-in-out;
+}
+
+.process {
+    position: relative;
+    z-index: 3;
+}
+
+.info-head{
+    padding: 1rem;
+}
+
+.pop-up{
+    position: absolute;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1rem;
+    z-index: 2;
+    display: none;
+    top: -60px;
+    transition: hover 0.3s ease-in-out;
+}
+
+.fragment:hover .pop-up{
+    display: block;
+    z-index: 5;
+    transition: all 3s ease-in-out;
+}
+
+.pop-up::after {
+    content: '';
+    position: absolute;
+    bottom: 0px;
+    left: 50%;
+    transform: translate(-50%,100%) rotate(180deg);
+    border: 7px solid transparent;
+    border-bottom-color: #ddd;
+}

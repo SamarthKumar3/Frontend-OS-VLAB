@@ -15,7 +15,8 @@ import Logic from './routes/Memory-Management/Logic.tsx';
 import About from './routes/About-Us.tsx';
 import Contact from './routes/Contact.tsx';
 import Simulations from './routes/Simulations.tsx';
-import PC from './routes/Producer-Consumer/PC.tsx';
+
+import ProducerConsumer from './routes/Producer-Consumer/Logic.tsx';
 
 const router = createBrowserRouter([
   {
@@ -65,7 +66,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/Producer-Consumer",
-    element: <PC />,
+    element: <ProducerConsumer />,
   },
 ]);
 

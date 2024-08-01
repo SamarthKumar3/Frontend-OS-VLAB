@@ -1,21 +1,15 @@
-import React, { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useState } from 'react';
 import CanvasComponent from './Canvas';
 import './Logic.css'
-import { ProducerConsumer, EventLoop, Consumer, Producer, Renderer } from './ProducerConsumer'
 
 const Logic: FunctionComponent = () => {
   const [chunksCount, setChunksCount] = useState(4);
   const [queueCapacity, setQueueCapacity] = useState(4);
   const [scenario, setScenario] = useState('normal');
+  const [key, setKey] = useState(0);
 
   const startModel = () => {
-    const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-    const eventLoop = new EventLoop();
-    const consumer = new Consumer(eventLoop, { delay: [300, 300], capacity: queueCapacity });
-    const producer = new Producer(eventLoop, consumer, { delay: [300, 300], count: chunksCount, scenario });
-    const renderer = new Renderer(canvas, 10, 7 + queueCapacity);
-    const model = new ProducerConsumer(eventLoop, producer, consumer, renderer);
-    model.start();
+    setKey(prevKey => prevKey + 1);
   };
 
   return (
@@ -60,7 +54,7 @@ const Logic: FunctionComponent = () => {
       </div>
       <div className="exp-vis">
         <div id="canvas-container">
-          <CanvasComponent />
+          <CanvasComponent key={key} chunksCount={chunksCount} queueCapacity={queueCapacity} scenario={scenario} />
         </div>
       </div>
     </div>

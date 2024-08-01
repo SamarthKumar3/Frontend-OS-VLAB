@@ -1,36 +1,74 @@
+export interface Options {
+    delay: [number, number];
+    count: number;
+    capacity: number;
+    boundary?: boolean;
+    semaphore?: boolean;
+}
+
+interface Chunk {
+    id: number;
+    progress: number;
+}
+
+interface Scene {
+    producer: ProducerState;
+    consumer: ConsumerState;
+}
+
+interface ProducerState {
+    state: string;
+    chunk: Chunk | null;
+    backpressure: boolean;
+}
+
+interface ConsumerState {
+    state: string;
+    chunk: Chunk | undefined;
+    queue: {
+        cap: number;
+        chunks: Chunk[];
+    };
+    drained: boolean;
+}
+
+interface Event {
+    delay: number;
+    run: () => void;
+    time: number;
+    parent?: Event;
+}
+
 class EventLoop {
-    private _events: any[];
-    private _current: any;
+    private _events: Event[] = [];
+    private _current: Event | undefined;
+    private _startAt: number = Date.now();
 
-    constructor() {
-        this._events = [];
-        this._current = undefined;
-    }
-
-    push(ev: any) {
-        ev.time = (this._current ? this._current.time : 0) + ev.delay;
+    push(ev: Event): void {
+        ev.time = ((this._current && this._current.time !== undefined) ? this._current.time : 0) + ev.delay;
         ev.parent = this._current;
-
         this._events.push(ev);
         this._events.sort((e1, e2) => e1.time - e2.time);
     }
 
-    pushImmediate(ev: any) {
-        ev.time = this._current ? this._current.time : 0;
+    pushImmediate(ev: Event): void {
+        ev.time = this._current && this._current.time !== undefined ? this._current.time : 0;
         ev.parent = this._current;
         this._events.unshift(ev);
     }
 
-    nextEventDelay() {
-        return this._current && this._events.length ? this._events[0].time - this._current.time : 0;
+    nextEventDelay(): number {
+        return (this._current && this._events.length)
+            ? this._events[0].time - this._current.time
+            : 0;
     }
 
-    execute() {
+    execute(): void {
         this._current = this._events.shift();
-        this._current.run();
+        this._current?.run();
     }
 
-    empty() {
+    empty(): boolean {
         return this._events.length === 0;
     }
 }
@@ -39,30 +77,28 @@ class Producer {
     private _eventLoop: EventLoop;
     private _consumer: Consumer;
     private _state: string;
-    private _delay: any;
+    private _delay: { value: number; range: [number, number] };
     private _count: number;
-    private _chunk: any;
+    private _chunk: Chunk | null;
     private _produced: number;
     private _backpressure: boolean;
 
-    constructor(eventLoop: EventLoop, consumer: Consumer, options: any) {
+    constructor(eventLoop: EventLoop, consumer: Consumer, options: Options) {
         this._eventLoop = eventLoop;
         this._consumer = consumer;
         this._state = 'idling';
-        this._delay = delayFromRange(options.delay || [1000, 1000]);
-        this._count = options.count || 50;
+        this._delay = delayFromRange(options.delay);
+        this._count = options.count;
         this._chunk = { id: 0, progress: 0 };
         this._produced = 0;
         this._backpressure = false;
-
         this._consumer.subOnDrained(() => {
             this._backpressure = false;
             this.resume();
         });
     }
 
-
-    toJSON() {
+    toJSON(): ProducerState {
         return {
             state: this._state,
             chunk: this._chunk,
@@ -70,22 +106,18 @@ class Producer {
         };
     }
 
-    resume() {
-        if (this._produced === this._count) {
-            return 0;
-        }
+    resume(): void {
+        if (this._produced === this._count) return;
         this._state = 'resuming';
         this._eventLoop.pushImmediate({
-            run: () => {
-                this._produce();
-            },
+            delay: 0,
+            run: () => this._produce(),
+            time: this._currentTime(),
         });
     }
 
-    private _produce() {
-        if (this._chunk === null) {
-            return this._end();
-        }
+    private _produce(): void {
+        if (this._chunk === null) return this._end();
 
         this._state = 'producing';
         if (this._chunk.progress === 100) {
@@ -93,27 +125,26 @@ class Producer {
             this._produced++;
             this._eventLoop.push({
                 delay: 0,
-                run: () => {
-                    this._push();
-                },
+                run: () => this._push(),
+                time: this._currentTime(),
             });
         } else {
-            this._chunk.progress += 10;
+            this._chunk.progress += 20; //increase this to increase the speed of production
             this._eventLoop.push({
-                delay: this._delay.value / 10,
-                run: () => {
-                    this._produce();
-                },
+                delay: this._delay.value / 20,
+                run: () => this._produce(),
+                time: this._currentTime(),
             });
         }
     }
 
-    private _push() {
+    private _push(): void {
         this._state = 'pushing';
         this._eventLoop.pushImmediate({
+            delay: 0,
             run: () => {
-                this._backpressure = !this._consumer.write(this._chunk);
-                this._chunk = this._produced < this._count ? { id: this._chunk.id + 1, progress: 0 } : null;
+                this._backpressure = !this._consumer.write(this._chunk!);
+                this._chunk = this._produced < this._count ? { id: this._chunk!.id + 1, progress: 0 } : null;
                 if (this._backpressure) {
                     if (this._produced === this._count) {
                         this._state = 'finished';
@@ -125,45 +156,51 @@ class Producer {
                     this._produce();
                 }
             },
+            time: this._currentTime(), // add this line to initialize the time property
         });
     }
 
-    private _end() {
+    private _end(): void {
         this._state = 'finished';
         this._backpressure = false;
         this._eventLoop.push({
             delay: 0,
-            run: () => {
-                this._consumer.write(null);
-            },
+            run: () => this._consumer.write(null),
+            time: this._currentTime(), // add this line to initialize the time property
         });
+    }
+
+    private _currentTime(): number {
+        return this._eventLoop.empty() ? 0 : this._eventLoop.nextEventDelay();
     }
 }
 
 class Consumer {
     private _eventLoop: EventLoop;
     private _state: string;
-    private _delay: any;
-    private _queue: any[];
+    private _delay: { value: number; range: [number, number] };
+    private _queue: Chunk[] = [];
     private _queueCap: number;
-    private _chunk: any;
+    private _chunk: Chunk | undefined;
     private _drained: boolean;
-    private _drainedListeners: any[];
+    private _drainedListeners: (() => void)[] = [];
     private _endCalled: boolean;
+    private _boundary: boolean;
+    private _semaphore: boolean;
 
-    constructor(eventLoop: EventLoop, options: any) {
+    constructor(eventLoop: EventLoop, options: Options) {
         this._eventLoop = eventLoop;
         this._state = 'idling';
-        this._delay = delayFromRange(options.delay || [2000, 2000]);
-        this._queue = [];
-        this._queueCap = options.capacity || 3;
+        this._delay = delayFromRange(options.delay);
+        this._queueCap = options.capacity;
         this._chunk = undefined;
         this._drained = false;
-        this._drainedListeners = [];
         this._endCalled = false;
+        this._boundary = !!options.boundary;
+        this._semaphore = !!options.semaphore;
     }
 
-    toJSON() {
+    toJSON(): ConsumerState {
         return {
             state: this._state,
             chunk: this._chunk,
@@ -175,83 +212,78 @@ class Consumer {
         };
     }
 
-    write(chunk: any) {
+    write(chunk: Chunk | null): boolean {
         if (chunk === null) {
             this.end();
             return false;
         }
 
         if (this._queue.length >= this._queueCap) {
+            if (this._boundary) {
+                this._state = 'backpressure';
+                return false;
+            }
             throw new Error('Out of memory');
         }
         this._queue.push(chunk);
-        if (this._queue.length === this._queueCap) {
+        if (this._queue.length == this._queueCap) {
             this._resume();
         }
 
         return this._state === 'idling';
     }
 
-    subOnDrained(cb: any) {
+    subOnDrained(cb: () => void): void {
         this._drainedListeners.push(cb);
     }
 
-    end() {
+    end(): void {
         this._resume();
         this._endCalled = true;
     }
 
-    private _resume() {
-        if (this._state === 'finished') {
-            return;
-        }
+    private _resume(): void {
+        if (this._state == 'finished') return;
         this._state = 'resuming';
-        this._eventLoop.pushImmediate({
-            run: () => {
-                this._pull();
-            },
-        });
+        this._eventLoop.pushImmediate(createEvent(0, () => this._pull(), this._currentTime()));
     }
 
-    private _pull() {
+    private _pull(): void {
         this._state = 'pulling';
         this._chunk = this._queue.shift();
-        this._eventLoop.pushImmediate({
-            run: () => {
-                this._consume();
-            },
-        });
-    }
-
-    private _consume() {
-        this._state = 'consuming';
-        this._drained = false;
-        if (this._chunk.progress === 0 && this._state !== 'finished') {
-            this._delay = delayFromRange(this._delay.range);
-            this._eventLoop.push({
-                delay: 0,
-                run: () => {
-                    if (this._queue.length === 0) {
-                        this._drained = true;
-                        this._drainedListeners.forEach((cb) => cb());
-                        this._chunk = undefined;
-                        this._state = this._endCalled ? 'finished' : 'idling';
-                    } else if (this._state !== 'idling' && this._state !== 'finished') {
-                        this._pull();
-                    }
-                },
-            });
-        } else {
-            this._chunk.progress -= 10;
-            this._eventLoop.push({
-                delay: this._delay.value / 10,
-                run: () => {
-                    this._consume();
-                },
-            });
+        if (this._chunk) {
+            this._eventLoop.pushImmediate(createEvent(0, () => this._consume(), this._currentTime()));
         }
     }
+
+    private _consume(): void {
+        if (!this._chunk) return; 
+        this._state = 'consuming';
+        this._drained = false;
+        if (this._chunk.progress === 0 && this._state != 'finished') {
+            this._delay = delayFromRange(this._delay.range);
+            this._eventLoop.push(createEvent(0, () => {
+                if (this._queue.length === 0) {
+                    this._drained = true;
+                    this._drainedListeners.forEach(cb => cb());
+                    this._chunk = undefined;
+                    this._state = this._endCalled ? 'finished' : 'idling';
+                } else if (this._state !== 'idling' && this._state !== 'finished') {
+                    this._pull();
+                }
+            }, this._currentTime()));
+        } else {
+            this._chunk.progress -= 20; // Increase the progress decrement to consume faster
+            this._eventLoop.push(createEvent(this._delay.value / 20, () => this._consume(), this._currentTime()));
+        }
+    }
+
+    private _currentTime(): number {
+        return this._eventLoop.empty() ? 0 : this._eventLoop.nextEventDelay();
+    }
 }
+
+
 
 class Renderer {
     private _ctx: CanvasRenderingContext2D;
@@ -273,7 +305,7 @@ class Renderer {
     private _chunkH: number;
     private _queueW: number;
 
-    constructor(canvas: HTMLCanvasElement, dimX: number, dimY: number, fps?: number) {
+    constructor(canvas: HTMLCanvasElement, dimX: number, dimY: number, fps: number = 60) {
         this._ctx = canvas.getContext('2d')!;
         this._width = canvas.width;
         this._height = canvas.height;
@@ -281,7 +313,7 @@ class Renderer {
         this._dimY = dimY;
         this._unitX = Math.floor(this._width / this._dimX);
         this._unitY = Math.floor(this._height / this._dimY);
-        this._fps = fps || 60;
+        this._fps = fps;
         this.semaphore = { state: 1 };
         this._prodW = 5;
         this._prodH = 2;
@@ -294,11 +326,11 @@ class Renderer {
         this._queueW = 1;
     }
 
-    clear() {
+    clear(): void {
         this._ctx.clearRect(0, 0, this._width, this._height);
     }
 
-    draw(scene: any): Promise<void> {
+    draw(scene: Scene): Promise<void> {
         const producer = scene.producer;
         const consumer = scene.consumer;
         return new Promise<void>((resolve) => {
@@ -318,8 +350,7 @@ class Renderer {
         });
     }
 
-    drawText(message: string, x: number, y: number, options?: any) {
-        options = options || {};
+    drawText(message: string, x: number, y: number, options: { align?: string, color?: string, font?: string, rotate?: number } = {}): void {
         x = x * this._unitX;
         y = y * this._unitY;
         if (options.rotate !== void 0) {
@@ -333,7 +364,7 @@ class Renderer {
 
         this._ctx.fillStyle = options.color || '#000';
         this._ctx.font = options.font || '24px Plus Jakarta Sans';
-        this._ctx.textAlign = options.align || 'left';
+        this._ctx.textAlign = options.align as CanvasTextAlign || 'left';
         this._ctx.fillText(message, x, y);
 
         if (options.rotate !== void 0) {
@@ -341,8 +372,7 @@ class Renderer {
         }
     }
 
-    drawRect(x: number, y: number, w: number, h: number, options?: any) {
-        options = options || {};
+    drawRect(x: number, y: number, w: number, h: number, options: { color?: string, border?: string, radius?: number } = {}): void {
         this._fillRect(x, y, w, h, options);
         if (options.border) {
             this._strokeRect(x, y, w, h, {
@@ -352,7 +382,7 @@ class Renderer {
         }
     }
 
-    private _fillRect(x: number, y: number, w: number, h: number, options: any) {
+    private _fillRect(x: number, y: number, w: number, h: number, options: { color?: string, radius?: number }): void {
         if (options.radius) {
             this._rectRounded(x, y, w, h, options.radius);
         } else {
@@ -362,7 +392,7 @@ class Renderer {
         this._ctx.fill();
     }
 
-    private _strokeRect(x: number, y: number, w: number, h: number, options: any) {
+    private _strokeRect(x: number, y: number, w: number, h: number, options: { color?: string, radius?: number }): void {
         if (options.radius) {
             this._rectRounded(x, y, w, h, options.radius);
         } else {
@@ -372,12 +402,12 @@ class Renderer {
         this._ctx.stroke();
     }
 
-    private _rectPlain(x: number, y: number, w: number, h: number) {
+    private _rectPlain(x: number, y: number, w: number, h: number): void {
         this._ctx.beginPath();
         this._ctx.rect(x * this._unitX, y * this._unitY, w * this._unitX, h * this._unitY);
     }
 
-    private _rectRounded(x: number, y: number, w: number, h: number, r: number) {
+    private _rectRounded(x: number, y: number, w: number, h: number, r: number): void {
         x = x * this._unitX;
         y = y * this._unitY;
         w = w * this._unitX;
@@ -394,7 +424,7 @@ class Renderer {
         this._ctx.arcTo(x, y, x + w, y, r);
     }
 
-    private _drawProducer(producer: any, queue: any) {
+    private _drawProducer(producer: ProducerState, queue: { cap: number, chunks: Chunk[] }): void {
         const x = this._prodX();
         const y = this._prodY();
         this.drawRect(x, y, this._prodW, this._prodH, {
@@ -407,112 +437,16 @@ class Renderer {
             color: '#FFFFFFCC',
         });
 
-        // If the producer is producing, draw the chunk
         if (producer.state === 'producing') {
-            this._drawChunk(producer.chunk, this._chunkX(), y + 1);
+            this._drawChunk(producer.chunk!, this._chunkX(), y + 1);
         }
 
-        // Use the queue to show the backpressure or other states
-        if (queue.chunks.length >= queue.cap) {
+        if (producer.backpressure) {
             this._drawBackpressureWarn(queue);
         }
     }
 
-    private _drawConsumer(consumer: any) {
-        const x = this._consX();
-        const y = this._consY(consumer);
-        this.drawRect(x, y, this._consW, this._consH, {
-            color: '#7F4EBD',
-            border: '#331A53',
-            radius: 6,
-        });
-        if (consumer.state === 'finished') {
-            this.semaphore.state = -1; // Use -1 to represent "Finished"
-            this._drawSemaphore();
-        }
-        this.drawText(consumerText(consumer), (this._dimX - 3) / 2, y + 1.6, {
-            align: 'center',
-            color: '#FFFFFFCC',
-        });
-        if (consumer.state === 'consuming' || consumer.state === 'flushing') {
-            this._drawChunk(consumer.chunk, this._chunkX(), y);
-        }
-    }
-
-
-    private _drawSemaphore() {
-        const x = this._dimX - 3;
-        const y = this._dimY / 2 - 1;
-        const state = this.semaphore.state;
-        const text = state === 1 ? 'Signal' : state === 0 ? 'Wait' : 'Finished'; // Adjust this logic as needed for your application
-
-        this.drawRect(x, y, this._semaW, this._semaH, {
-            color: '#C7BFD1',
-            border: '#7F4EBD',
-            radius: 6,
-        });
-
-        // Convert state to string for drawText
-        this.drawText(state.toString(), x + 1, y + 1, {
-            align: 'center',
-            color: '#7F4EBD',
-        });
-
-        this.drawText(text, x + 1, y + 1.5, {
-            align: 'center',
-            color: '#7F4EBD',
-            font: '600 18px Plus Jakarta Sans',
-        });
-    }
-
-
-    private _drawQueue(queue: any, offset?: number) {
-        const x = this._queueX();
-        const y = this._queueY();
-        offset = offset || 0;
-        this.drawRect(x, y, this._queueW, this._queueH(queue), {
-            color: '#FFF',
-            border: '#331A53',
-        });
-        this.drawRect(x - 0.2, y - 1 / this._unitY, this._queueW + 0.4, 2 / this._unitY, {
-            color: '#FFF',
-        });
-        this.drawRect(
-            x - 0.2,
-            y - 1 / this._unitY + this._queueH(queue),
-            this._queueW + 0.4,
-            2 / this._unitY,
-            { color: '#FFF' }
-        );
-        for (let i = 0; i < queue.chunks.length; i++) {
-            this._drawChunk(queue.chunks[i], x, y + queue.cap - i - 1 - offset);
-        }
-    }
-
-    private _drawChunk(chunk: any, x: number, y: number) {
-        if (y === 2) {
-            this.semaphore.state = 1;
-        }
-        if (chunk == null) {
-            return 0;
-        }
-        const payloadColor = '#C7BFD1';
-        this.drawRect(x, y, this._chunkW, this._chunkH, {
-            color: 'white',
-            radius: 3,
-        });
-        this.drawRect(x, y, this._chunkW * (chunk.progress / 100), this._chunkH, {
-            color: payloadColor,
-            radius: 3,
-        });
-        this._strokeRect(x, y, this._chunkW, this._chunkH, {
-            color: '#7F4EBD',
-            radius: 3,
-        });
-        this.drawText(chunk.id + 1, x + 0.5, y + 0.65, { align: 'center', color: '#7F4EBD' });
-    }
-
-    private _drawBackpressureWarn(queue: any) {
+    private _drawBackpressureWarn(queue: { cap: number, chunks: Chunk[] }): void {
         this.drawText(
             'Backpressure',
             this._queueX() + this._queueW + 1.5,
@@ -521,8 +455,8 @@ class Renderer {
         );
     }
 
-    private _animatePushing(producer: any, consumer: any): Promise<void> {
-        const chunk = producer.chunk;
+    private _animatePushing(producer: ProducerState, consumer: ConsumerState): Promise<void> {
+        const chunk = producer.chunk!;
         const queue = consumer.queue;
         this.semaphore.state = 1;
         return new Promise<void>((resolve) => {
@@ -552,14 +486,12 @@ class Renderer {
         });
     }
 
-
-
-    private _animatePulling(producer: any, consumer: any) {
-        const chunk = consumer.chunk;
+    private _animatePulling(producer: ProducerState, consumer: ConsumerState): Promise<void> {
+        const chunk = consumer.chunk!;
         const queue = consumer.queue;
         this.semaphore.state = 0;
 
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
             const startY = this._queueY() + this._queueH(queue) - 1;
             const endY = this._consY(consumer);
             let chunkY = startY;
@@ -576,13 +508,13 @@ class Renderer {
                 this._drawChunk(chunk, this._chunkX(), chunkY);
                 if (chunkY >= endY) {
                     clearInterval(anim);
-                    this._animateQueueShift(queue).then(resolve);
+                    this._animateQueueShift(queue).then(() => resolve());
                 }
             }, frameDuration);
         });
     }
 
-    private _animateQueueShift(queue: any): Promise<void> {
+    private _animateQueueShift(queue: { cap: number, chunks: Chunk[] }): Promise<void> {
         return new Promise<void>((resolve) => {
             if (queue.chunks.length === 0) {
                 return resolve();
@@ -603,40 +535,143 @@ class Renderer {
         });
     }
 
-    private _prodX() {
+    private _prodX(): number {
         return (this._dimX - this._prodW - 3) / 2;
     }
 
-    private _prodY() {
+    private _prodY(): number {
         return 1;
     }
 
-    private _consX() {
+    private _consX(): number {
         return (this._dimX - this._consW - 3) / 2;
     }
 
-    private _consY(consumer: any) {
+    private _consY(consumer: ConsumerState): number {
         return this._prodX() + this._prodH + 0.5 + this._queueH(consumer.queue) + 0.5;
     }
 
-    private _chunkX() {
+    private _chunkX(): number {
         return (this._dimX - this._chunkW - 3) / 2;
     }
 
-    private _queueX() {
+    private _queueX(): number {
         return this._chunkX();
     }
 
-    private _queueY() {
+    private _queueY(): number {
         return this._prodX() + this._prodH + 0.5;
     }
 
-    private _queueH(queue: any) {
+    private _queueH(queue: { cap: number, chunks: Chunk[] }): number {
         return queue.cap;
+    }
+
+    private _drawQueue(queue: { cap: number, chunks: Chunk[] }, offset: number = 0): void {
+        const x = this._queueX();
+        const y = this._queueY();
+        this.drawRect(x, y, this._queueW, this._queueH(queue), {
+            color: '#FFF',
+            border: '#331A53',
+        });
+        this.drawRect(x - 0.2, y - 1 / this._unitY, this._queueW + 0.4, 2 / this._unitY, {
+            color: '#FFF',
+        });
+        this.drawRect(
+            x - 0.2,
+            y - 1 / this._unitY + this._queueH(queue),
+            this._queueW + 0.4,
+            2 / this._unitY,
+            { color: '#FFF' }
+        );
+        for (let i = 0; i < queue.chunks.length; i++) {
+            this._drawChunk(queue.chunks[i], x, y + queue.cap - i - 1 - offset);
+        }
+    }
+
+    private _drawSemaphore(): void {
+        const x = this._dimX - 3;
+        const y = this._dimY / 2 - 1;
+        const state = this.semaphore.state;
+        const text = state === 1 ? 'Signal' : state === 0 ? 'Wait' : 'Finished';
+
+        this.drawRect(x, y, this._semaW, this._semaH, {
+            color: '#C7BFD1',
+            border: '#7F4EBD',
+            radius: 6,
+        });
+
+        this.drawText(state.toString(), x + 1, y + 1, {
+            align: 'center',
+            color: '#7F4EBD',
+        });
+
+        this.drawText(text, x + 1, y + 1.5, {
+            align: 'center',
+            color: '#7F4EBD',
+            font: '600 18px Plus Jakarta Sans',
+        });
+    }
+
+    private _drawConsumer(consumer: ConsumerState): void {
+        const x = this._consX();
+        const y = this._consY(consumer);
+        this.drawRect(x, y, this._consW, this._consH, {
+            color: '#7F4EBD',
+            border: '#331A53',
+            radius: 6,
+        });
+        if (consumer.state === 'finished') {
+            this.semaphore.state = -1;
+            this._drawSemaphore();
+        }
+        this.drawText(consumerText(consumer), (this._dimX - 3) / 2, y + 1.6, {
+            align: 'center',
+            color: '#FFFFFFCC',
+        });
+        if (consumer.state === 'consuming' || consumer.state === 'flushing') {
+            this._drawChunk(consumer.chunk!, this._chunkX(), y);
+        }
+    }
+
+    private _drawChunk(chunk: Chunk, x: number, y: number): void {
+        if (y === 2) {
+            this.semaphore.state = 1;
+        }
+        if (chunk == null) {
+            return;
+        }
+        const payloadColor = '#C7BFD1';
+        this.drawRect(x, y, this._chunkW, this._chunkH, {
+            color: 'white',
+            radius: 3,
+        });
+        this.drawRect(x, y, this._chunkW * (chunk.progress / 100), this._chunkH, {
+            color: payloadColor,
+            radius: 3,
+        });
+        this._strokeRect(x, y, this._chunkW, this._chunkH, {
+            color: '#7F4EBD',
+            radius: 3,
+        });
+        this.drawText((chunk.id + 1).toString(), x + 0.5, y + 0.65, {
+            align: 'center',
+            color: '#7F4EBD',
+        });
     }
 }
 
-function producerText(producer: any) {
+//Helper functions
+function createEvent(delay: number, run: () => void, currentTime: number): Event {
+    return {
+        delay,
+        run,
+        time: currentTime + delay,
+        parent: undefined
+    };
+}
+
+function producerText(producer: ProducerState): string {
     let message = producer.state;
     if (message === 'pushing') {
         message = 'producing';
@@ -644,7 +679,7 @@ function producerText(producer: any) {
     return String.fromCharCode(message.charCodeAt(0) - 32) + message.slice(1);
 }
 
-function consumerText(consumer: any) {
+function consumerText(consumer: ConsumerState): string {
     let message = consumer.state;
     if (message === 'pulling') {
         message = 'consuming';
@@ -652,14 +687,14 @@ function consumerText(consumer: any) {
     return String.fromCharCode(message.charCodeAt(0) - 32) + message.slice(1);
 }
 
-function delayFromRange(range: number[]) {
+function delayFromRange(range: [number, number]): { value: number, range: [number, number] } {
     return {
         value: rand(range[0], range[1]),
         range: range,
     };
 }
 
-function rand(a: number, b: number) {
+function rand(a: number, b: number): number {
     return a + Math.floor(Math.random() * (b - a + 1));
 }
 
@@ -669,7 +704,7 @@ class ProducerConsumer {
     private _consumer: Consumer;
     private _renderer: Renderer;
     private _state: string;
-    private _tick: any;
+    private _tick: number | undefined;
 
     constructor(eventLoop: EventLoop, producer: Producer, consumer: Consumer, renderer: Renderer) {
         this._eventLoop = eventLoop;
@@ -679,14 +714,14 @@ class ProducerConsumer {
         this._state = 'initial';
     }
 
-    render() {
+    render(): Promise<void> {
         return this._renderer.draw({
             consumer: this._consumer.toJSON(),
             producer: this._producer.toJSON(),
         });
     }
 
-    start() {
+    start(): void {
         if (this._state === 'initial') {
             this._producer.resume();
         }
@@ -714,7 +749,7 @@ class ProducerConsumer {
         run();
     }
 
-    pause() {
+    pause(): void {
         if (this._state !== 'running') {
             throw new Error('Cannot pause at this state');
         }
@@ -726,15 +761,15 @@ class ProducerConsumer {
         this._state = 'paused';
     }
 
-    isRunning() {
+    isRunning(): boolean {
         return this._state === 'running';
     }
 
-    isPaused() {
+    isPaused(): boolean {
         return this._state === 'paused';
     }
 
-    private _next() {
+    private _next(): Promise<void> {
         this._eventLoop.execute();
         return this.render();
     }

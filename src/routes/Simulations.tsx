@@ -1,4 +1,3 @@
-import React from 'react'
 import './Simulations.css'
 import { Link } from 'react-router-dom'
 
@@ -12,7 +11,7 @@ const Simulations = () => {
         <Header/>
         <div className='cardList'>
             {ListOfExperiments.map(experiment => {
-                return <div className='card' key={experiment.id}>
+                return <div className='exp-card' key={experiment.id}>
                     <h3 className='experimentName'>
                         {experiment.title}
                     </h3>

@@ -4,14 +4,14 @@ import Footer from "./components/Footer";
 import Index from ".";
 import Header from "./components/Header";
 
-const Introduction: FunctionComponent = () => {
+const App: FunctionComponent = () => {
   return (
     <div className="main-container">
       <Header />
       <Index />
-      <Footer />
+      <Footer info={true}/>
     </div>
   );
 };
 
-export default Introduction;
+export default App;

@@ -1,0 +1,16 @@
+.carousel-images {
+    width: 100%;
+}
+
+.carousel-image {
+    width: 100%;
+    height: 20rem;
+}
+
+.slick-arrow{
+    display: none !important;
+}
+
+.slick-dots li button::before {
+    font-size: 10px;
+}

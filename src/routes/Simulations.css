@@ -8,7 +8,7 @@
     height: fit-content;
 }
 
-.card {
+.exp-card {
     width: 30%;
     padding: 0;
     background-color: #f0f0f0;
@@ -42,7 +42,7 @@
 
 
 @media (max-width: 768px) {
-    .card {
+    .exp-card {
         width: calc(50% - 10px);
         /* 2 cards per row at smaller screens */
     }

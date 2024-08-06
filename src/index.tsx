@@ -1,51 +1,69 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { Link } from 'react-router-dom';
+import './index.css';
+import Carousel from './components/Carousel';
 
-const Index = () => {
+const images = [
+    '/static/cintel.jpg',
+    '/static/operating-system-t.jpg',
+    '/static/cintel.jpg',
+];
+
+const Index: React.FC = () => {
+    const [sectionContent, setSectionContent] = useState(true);
+
+
     return (
         <>
+            <div className='carousel-container'>
+                <Carousel images={images} />
+            </div>
             <div className="section-1">
                 <div className="hero-choice">
-                    <button className="button-index" id="abt-dept">About the department</button>
-                    <button className="button-index" id="vsn-msn">Vision and Mission</button>
+                    <button className={`button-index ${sectionContent ? 'focused' : ''}`} onClick={() => setSectionContent(true)}>About the department</button>
+                    <button className="button-index" onClick={() => setSectionContent(false)}>Vision and Mission</button>
                 </div>
                 <div className="underline"></div>
-                <div className="hero-content">
-                    <p>The Department of Computational Intelligence is an educational milieu that creates a foreground
-                        for students to acquire knowledge in the futuristic areas of Artificial Intelligence, Machine
-                        Learning and Software Engineering. We strive to create students ready for the industry with the
-                        ability to develop and sustain space-age systems.
-                        The curriculum’s prime focus is to endorse learning through the key concepts of acquire,
-                        analyze, design, and implement oriented teaching, which will create the students’ ability to
-                        challenge, innovate, and compete with assigned Capstone projects to solve real-world problems to
-                        make themselves industry ready professionals and enable them to become future entrepreneurs.
-                        With no lid to cap your creative genius, the Department of Computational Intelligence brings you
-                        forth all the means to implement and take advantage of a wide variety of emerging cutting-edge
-                        technologies in software systems or simply be the mastermind behind it all.</p>
-                </div>
-                <div className="hero-content">
-                    <div>
-                        <h2>Vision:</h2>
-                        <p>To build a world-renowned academic platform in Computational Intelligence by providing unique
-                            learning and research experiences in collaboration with industries and world-className
-                            universities.
-                        </p>
+                {sectionContent ?
+                    <div className="hero-content">
+                        <p>The Department of Computational Intelligence is an educational milieu that creates a foreground
+                            for students to acquire knowledge in the futuristic areas of Artificial Intelligence, Machine
+                            Learning and Software Engineering. We strive to create students ready for the industry with the
+                            ability to develop and sustain space-age systems.
+                            The curriculum’s prime focus is to endorse learning through the key concepts of acquire,
+                            analyze, design, and implement oriented teaching, which will create the students’ ability to
+                            challenge, innovate, and compete with assigned Capstone projects to solve real-world problems to
+                            make themselves industry ready professionals and enable them to become future entrepreneurs.
+                            With no lid to cap your creative genius, the Department of Computational Intelligence brings you
+                            forth all the means to implement and take advantage of a wide variety of emerging cutting-edge
+                            technologies in software systems or simply be the mastermind behind it all.</p>
                     </div>
-                    <div>
-                        <h2>Mission:</h2>
-                        <p>To envision in creating, acquiring, and disseminating engineering knowledge on computational
-                            intelligence to elevate a student into a professional by imparting knowledge on mathematics,
-                            computing sciences, artificial intelligence, and software engineering along with the skills
-                            of cognitive computing.
-                            To offer a unique learning environment through world class faculty, curriculum, modernized
-                            lab facilities, and an interactive classroom environment with real-time experience from
-                            industrial experts that leads to a computing career in the latest technologies.
-                            To uplift the innovative research and development in computational intelligence and its
-                            allied fields by collaborating with renowned academic institutions and industries.
-                            To produce graduates who are global innovators and leaders in the development of
-                            computational intelligence-based systems, along with the commitment to ethical
-                            responsibilities and lifelong learning.</p>
+                    :
+                    <div className="hero-content">
+                        <div>
+                            <h2>Vision:</h2>
+                            <p>To build a world-renowned academic platform in Computational Intelligence by providing unique
+                                learning and research experiences in collaboration with industries and world-className
+                                universities.
+                            </p>
+                        </div>
+                        <div>
+                            <h2>Mission:</h2>
+                            <p>To envision in creating, acquiring, and disseminating engineering knowledge on computational
+                                intelligence to elevate a student into a professional by imparting knowledge on mathematics,
+                                computing sciences, artificial intelligence, and software engineering along with the skills
+                                of cognitive computing.
+                                To offer a unique learning environment through world class faculty, curriculum, modernized
+                                lab facilities, and an interactive classroom environment with real-time experience from
+                                industrial experts that leads to a computing career in the latest technologies.
+                                To uplift the innovative research and development in computational intelligence and its
+                                allied fields by collaborating with renowned academic institutions and industries.
+                                To produce graduates who are global innovators and leaders in the development of
+                                computational intelligence-based systems, along with the commitment to ethical
+                                responsibilities and lifelong learning.</p>
+                        </div>
                     </div>
-                </div>
+                }
                 <div className="underline"></div>
                 <h1 className="welcome-heading">Welcome Message</h1>
                 <div>
@@ -75,13 +93,12 @@ const Index = () => {
                         </div>
                     </div>
                     <div className="cards">
-                        <a href='/Simulations' className="no-decoration card"><img className="card"
-                            src="https://placehold.co/600x200" alt="" /></a>
+                        <Link to='/Simulations' className="no-decoration card"><img className="card"
+                            src="https://placehold.co/600x200" alt="" /></Link>
                     </div>
                 </div>
             </div>
         </>
-
     )
 }
 

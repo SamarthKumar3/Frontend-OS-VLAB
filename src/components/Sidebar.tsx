@@ -3,9 +3,9 @@ import './Sidebar.css';
 import Header from "./Header";
 import Introduction from "../static/Introduction.json";
 import Objective from "../static/Objective.json";
-import ListOfExperiments from "../static/ListOfExperiments.json";
+// import ListOfExperiments from "../static/ListOfExperiments.json";
 import Feedback from "../static/Feedback.json";
-import { Link } from "react-router-dom";
+// import { Link } from "react-router-dom";
 
 const ContactTabFrame: FunctionComponent = () => {
     const [textToDisplay, setTextToDisplay] = useState<String>("");
@@ -18,10 +18,10 @@ const ContactTabFrame: FunctionComponent = () => {
         if (text) {
             switch (text) {
                 case "Introduction":
-                    setTextToDisplay(Introduction.content );
+                    setTextToDisplay(Introduction.content);
                     break;
                 case "Objective":
-                    setTextToDisplay( Objective.content );
+                    setTextToDisplay(Objective.content);
                     break;
                 case "List of experiments":
                     setTextToDisplay("");

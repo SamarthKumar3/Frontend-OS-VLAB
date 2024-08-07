@@ -9,7 +9,7 @@ const App: FunctionComponent = () => {
     <div className="main-container">
       <Header />
       <Index />
-      <Footer info={true}/>
+      <Footer info={true} />
     </div>
   );
 };

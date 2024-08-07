@@ -2,7 +2,7 @@ import React from 'react';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
-import './Carousel.css'; // Optional for additional custom styles
+import './Carousel.css'; 
 
 interface CarouselProps {
     images: string[];
@@ -18,7 +18,7 @@ const Carousel: React.FC<CarouselProps> = ({ images }) => {
         autoplay: true,
         autoplaySpeed: 3000,
     };
-    
+
     return (
         <div className="carousel">
             <Slider {...settings}>

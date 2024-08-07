@@ -257,7 +257,7 @@ class Consumer {
     }
 
     private _consume(): void {
-        if (!this._chunk) return; 
+        if (!this._chunk) return;
         this._state = 'consuming';
         this._drained = false;
         if (this._chunk.progress === 0 && this._state != 'finished') {

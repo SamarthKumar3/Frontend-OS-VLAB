@@ -101,7 +101,7 @@
     height: 100px;
 }
 
-.fragment{
+.fragment {
     position: relative;
     transition: hover 0.3s ease-in-out;
 }
@@ -111,11 +111,11 @@
     z-index: 3;
 }
 
-.info-head{
+.info-head {
     padding: 1rem;
 }
 
-.pop-up{
+.pop-up {
     position: absolute;
     background-color: #f9f9f9;
     border: 1px solid #ddd;
@@ -127,7 +127,7 @@
     transition: hover 0.3s ease-in-out;
 }
 
-.fragment:hover .pop-up{
+.fragment:hover .pop-up {
     display: block;
     z-index: 5;
     transition: all 3s ease-in-out;
@@ -138,7 +138,7 @@
     position: absolute;
     bottom: 0px;
     left: 50%;
-    transform: translate(-50%,100%) rotate(180deg);
+    transform: translate(-50%, 100%) rotate(180deg);
     border: 7px solid transparent;
     border-bottom-color: #ddd;
 }

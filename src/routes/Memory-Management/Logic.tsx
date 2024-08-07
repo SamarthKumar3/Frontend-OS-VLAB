@@ -272,7 +272,7 @@ const Logic: React.FC = () => {
                                     border: 'solid 1px black',
                                     maxWidth: '100%'
                                 }}>
-                                    <div className='pop-up'>{fragment.size-fragment.allocatedProcessSize}</div>
+                                <div className='pop-up'>{fragment.size - fragment.allocatedProcessSize}</div>
                                 <div
                                     className='process' style={{
                                         width: `${(fragment.allocatedProcessSize / fragment.size) * 100}%`,

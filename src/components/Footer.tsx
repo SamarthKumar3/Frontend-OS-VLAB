@@ -5,10 +5,10 @@ interface FooterProps {
   info?: Boolean;
 }
 
-const Footer: FunctionComponent<FooterProps> = ({info}) => {
+const Footer: FunctionComponent<FooterProps> = ({ info }) => {
   return (
     <footer className="bottom" id="footer">
-      <div className={`background-rectangle ${info? '': 'solid-rect'}`}>
+      <div className={`background-rectangle ${info ? '' : 'solid-rect'}`}>
         {info ?
           <>
             <div className="footer-content-left">

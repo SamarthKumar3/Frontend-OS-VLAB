@@ -14,7 +14,7 @@
     max-width: 100%;
 }
 
-.intro-obj-fed-frame div{
+.intro-obj-fed-frame div {
     cursor: pointer;
 }
 
@@ -26,16 +26,16 @@ p {
     margin: 0;
 }
 
-.experiment-list{
+.experiment-list {
     padding: 1rem;
 }
 
-.experiment-list a{
-    text-decoration: none !important;   
+.experiment-list a {
+    text-decoration: none !important;
     color: var(--color-gray-300);
 }
 
-.experiment-list a:hover{
+.experiment-list a:hover {
     color: var(--color-slateblue);
 }
 
